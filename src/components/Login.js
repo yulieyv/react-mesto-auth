@@ -1,52 +1,27 @@
 import React from "react";
+import AuthForm from "./AuthForm";
+import useForm from "../hooks/useForm";
 
 function Login(props) {
-  const [email, setEmail] = React.useState("");
-  const [password, setPassword] = React.useState("");
-
-  function handleEmailChange(evt) {
-    setEmail(evt.target.value);
-  }
-
-  function handlePasswordChange(evt) {
-    setPassword(evt.target.value);
-  }
+  const email = useForm("");
+  const password = useForm("");
 
   function handleSubmit(evt) {
     evt.preventDefault();
-    props.onLogin(password, email);
+    props.onLogin(password.values, email.values);
   }
 
   return (
     <>
-      <section className="auth">
-        <form className="auth__form" onSubmit={handleSubmit}>
-          <h2 className="auth__title">Вход</h2>
-          <input
-            className="auth__input"
-            onChange={handleEmailChange}
-            placeholder="Email"
-            name="email"
-            type="email"
-            value={email || ""}
-            required
-            autoComplete="off"
-          ></input>
-          <input
-            className="auth__input"
-            onChange={handlePasswordChange}
-            placeholder="Пароль"
-            name="password"
-            type="password"
-            value={password || ""}
-            required
-            autoComplete="off"
-          ></input>
-          <button className="auth__submit-button" type="submit">
-            Войти
-          </button>
-        </form>
-      </section>
+      <AuthForm
+        onEmailChange={email.onChange}
+        onPasswordChange={password.onChange}
+        onSubmit={handleSubmit}
+        title="Вход"
+        action="Войти"
+        email={email.values}
+        password={password.values}
+      />
     </>
   );
 }
