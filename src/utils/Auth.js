@@ -37,8 +37,7 @@ export function login(password, email) {
         localStorage.setItem("jwt", data.token);
         return data;
       }
-    })
-    .catch((err) => console.log(err));
+    });
 }
 
 export const getContent = (token) => {
