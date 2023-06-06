@@ -12,7 +12,6 @@ function DeleteCardPopup(props) {
     title={"Вы уверены?"}
     name={"delete"}
     buttonText={"Да"}
-    onCloseClick={props.onCloseClick}
     onClose={props.onClose}
     onSubmit={handleSubmit}
   ></PopupWithForm>

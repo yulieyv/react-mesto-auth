@@ -7,47 +7,44 @@ function checkResponse(res) {
   return Promise.reject(`Ошибка ${res.status} ${res.statusText}`);
 }
 
-export const register = (email, password) => {
-  return fetch(`${BASE_URL}/auth/local/register`, {
+export function register(password, email) {
+  return fetch(`${BASE_URL}/signup`, {
     method: "POST",
     headers: {
-      Accept: "application/json",
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      email: email,
       password: password,
+      email: email,
     }),
   }).then(checkResponse);
-};
+}
 
-export const login = (email, password) => {
-  return fetch(`${BASE_URL}/auth/local`, {
+export function login(password, email) {
+  return fetch(`${BASE_URL}/signin`, {
     method: "POST",
     headers: {
-      Accept: "application/json",
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      email: email,
       password: password,
+      email: email,
     }),
   })
     .then(checkResponse)
     .then((data) => {
-      if (data.jwt) {
-        localStorage.setItem("jwt", data.jwt);
+      if (data.token) {
+        localStorage.setItem("jwt", data.token);
         return data;
       }
     })
     .catch((err) => console.log(err));
-};
+}
 
 export const getContent = (token) => {
   return fetch(`${BASE_URL}/users/me`, {
     method: "GET",
     headers: {
-      Accept: "application/json",
       "Content-Type": "application/json",
       Authorization: `Bearer ${token}`,
     },

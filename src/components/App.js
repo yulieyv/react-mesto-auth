@@ -10,10 +10,13 @@ import EditAvatarPopup from "./EditAvatarPopup";
 import DeleteCardPopup from "./DeleteCardPopup.js";
 import Login from "./Login.js";
 import Register from "./Register.js";
+import InfoTooltip from "./InfoTooltip.js";
 import { CurrentUserContext } from "../contexts/CurrentUserContext";
 import { api } from "../utils/Api.js";
 import * as auth from "../utils/Auth.js";
 import ProtectedRouteElement from "./ProtectedRoute.js";
+import doneImage from "../images/done.png";
+import errorImage from "../images/error.png";
 
 function App() {
   const [isEditAvatarPopupOpen, setIsEditAvatarPopupOpen] =
@@ -29,43 +32,99 @@ function App() {
   const [cards, setCards] = React.useState([]);
   const [email, setEmail] = React.useState("");
   const [loggedIn, setLoggedIn] = React.useState(false);
-  //const [isLoading, setIsLoading] = React.useState(false);
   const [isInfoTooltipPopupOpen, setIsInfoTooltipPopupOpen] =
     React.useState(false);
+  const [status, setStatus] = React.useState({ path: "", text: "" });
   const navigate = useNavigate();
 
   React.useEffect(() => {
-    Promise.all([api.getUserInfo(), api.getInitialCards()])
-      .then(([user, cards]) => {
-        setCurrentUser(user);
-        setCards(cards);
-      })
-      .catch((err) => console.log(err))
-      .finally(() => {});
-  }, []);
+    if (loggedIn) {
+      Promise.all([api.getUserInfo(), api.getInitialCards()])
+        .then(([user, cards]) => {
+          setCurrentUser(user);
+          setCards(cards);
+        })
+        .catch((err) => console.log(err))
+        .finally(() => {});
+    }
+  }, [loggedIn]);
 
-  React.useEffect(() => {
+  function checkToken() {
     if (localStorage.getItem("jwt")) {
       const jwt = localStorage.getItem("jwt");
       auth
         .getContent(jwt)
         .then((res) => {
-          setLoggedIn(true);
-          setEmail(res.data.email);
-          navigate("/", { replace: true });
-        })
-        .catch((err) => {
-          if (err.status === 401) {
-            console.log("401 — Переданный токен некорректен");
+          if (res) {
+            setLoggedIn(true);
+            setEmail(res.data.email);
+            navigate("/", { replace: true });
+          } else {
+            setLoggedIn(false);
           }
-          console.log("400 - пользователь с email не найден");
-        });
+        })
+        .catch((err) => console.log(`Ошибка: ${err}`));
     }
-  }, [navigate]);
+  }
 
-  const handleEditAvatarClick = () => {
+  React.useEffect(() => {
+    checkToken();
+  }, []);
+
+  function handleRegisterSubmit(password, email) {
+    auth
+      .register(password, email)
+      .then((res) => {
+        setIsInfoTooltipPopupOpen(true);
+        setStatus({
+          path: doneImage,
+          text: "Вы успешно зарегистрировались!",
+        });
+        console.log(res);
+        navigate("/sign-in", { replace: true });
+      })
+      .catch(() => {
+        setIsInfoTooltipPopupOpen(true);
+        setStatus({
+          path: errorImage,
+          text: "Что-то пошло не так! Попробуйте ещё раз.",
+        });
+        console.log("400 - некорректно заполнено одно из полей");
+      });
+  }
+
+  function handleLoginSubmit(password, email) {
+    auth
+      .login(password, email)
+      .then((res) => {
+        localStorage.setItem("jwt", res.token);
+        setLoggedIn(true);
+        setEmail(email);
+        navigate("/*", { replace: true });
+      })
+
+      .catch((err) => {
+        setIsInfoTooltipPopupOpen(true);
+        setStatus({
+          path: errorImage,
+          text: "Что-то пошло не так! Попробуйте ещё раз.",
+        });
+        if (err.status === 400) {
+          console.log("400 - некорректно заполнено одно из полей");
+        }
+        console.log("401 - пользователь с email не найден", `Ошибка: ${err}`);
+      });
+  }
+
+  function handleSignOutSubmit() {
+    localStorage.removeItem("jwt");
+    setLoggedIn(false);
+    navigate("/sign-in");
+  }
+
+  function handleEditAvatarClick() {
     setIsEditAvatarPopupOpen(true);
-  };
+  }
   function handleEditProfileClick() {
     setIsEditProfilePopupOpen(true);
   }
@@ -88,41 +147,6 @@ function App() {
     setIsInfoTooltipPopupOpen(false);
     setSelectedCard();
   }
-
-  function handlePopupCloseClick(evt) {
-    if (evt.target.classList.contains("popup_opened")) {
-      closeAllPopups();
-    }
-  }
-
-  React.useEffect(() => {
-    if (
-      isEditAvatarPopupOpen ||
-      isEditProfilePopupOpen ||
-      isAddPlacePopupOpen ||
-      isDeleteCardPopupOpen ||
-      isInfoTooltipPopupOpen ||
-      selectedCard
-    ) {
-      function handleEsc(evt) {
-        if (evt.key === "Escape") {
-          closeAllPopups();
-        }
-      }
-      document.addEventListener("keydown", handleEsc);
-
-      return () => {
-        document.removeEventListener("keydown", handleEsc);
-      };
-    }
-  }, [
-    isEditAvatarPopupOpen,
-    isEditProfilePopupOpen,
-    isAddPlacePopupOpen,
-    isDeleteCardPopupOpen,
-    isInfoTooltipPopupOpen,
-    selectedCard,
-  ]);
 
   function handleUpdateUser(user) {
     api
@@ -199,43 +223,6 @@ function App() {
       });
   }
 
-  function handleRegisterSubmit(email, password) {
-    auth
-      .register(email, password)
-      .then((res) => {
-        setIsInfoTooltipPopupOpen(true);
-        navigate("/", { replace: true });
-      })
-      .catch((err) => {
-        if (err.status === 400) {
-          console.log("400 - пользователь с email не найден");
-        }
-        setIsInfoTooltipPopupOpen(true);
-      });
-  }
-
-  function handleLoginsubmit(email, password) {
-    auth
-      .login(email, password)
-      .then((res) => {
-        localStorage.setItem("jwt", res.token);
-        setLoggedIn(true);
-        setEmail(true);
-        navigate("/", { replace: true });
-      })
-      .catch((err) => {
-        if (err.status === 400) {
-          console.log("400 - пользователь с email не найден");
-        }
-      });
-  }
-
-  function handleSignOutSubmit() {
-    localStorage.removeItem("jwt");
-    setLoggedIn(false);
-    navigate("/sign-in");
-  }
-
   return (
     <div className="page">
       <CurrentUserContext.Provider value={currentUser}>
@@ -245,24 +232,12 @@ function App() {
           loggedIn={loggedIn}
         />
         <Routes>
-        <Route
-            path="/sign-up"
-            element={
-              <Register
-                onRegister={handleRegisterSubmit}
-                onSignOut={setIsInfoTooltipPopupOpen}
-              />
-            }
-          ></Route>
           <Route
-            path="/sign-in"
-            element={<Login onLogin={handleLoginsubmit} />}
-          ></Route>
-          <Route
-            path="/"
+            path="/*"
             element={
               <ProtectedRouteElement
-                component={Main}
+                loggedIn={loggedIn}
+                element={Main}
                 onEditAvatar={handleEditAvatarClick}
                 onEditProfile={handleEditProfileClick}
                 onAddPlace={handleAddPlaceClick}
@@ -273,33 +248,46 @@ function App() {
               />
             }
           />
+          <Route
+            path="/sign-up"
+            element={
+              <Register
+                onRegister={handleRegisterSubmit}
+                onSignOut={setIsInfoTooltipPopupOpen}
+              />
+            }
+          ></Route>
+          <Route
+            path="/sign-in"
+            element={<Login onLogin={handleLoginSubmit} />}
+          ></Route>
         </Routes>
         {loggedIn && <Footer />}
+
+        <InfoTooltip
+          isOpen={isInfoTooltipPopupOpen}
+          onClose={closeAllPopups}
+          title={status.text}
+          path={status.path}
+        />
 
         <EditProfilePopup
           isOpen={isEditProfilePopupOpen}
           onClose={closeAllPopups}
-          onCloseClick={handlePopupCloseClick}
           onUpdateUser={handleUpdateUser}
         />
 
         <AddPlacePopup
           isOpen={isAddPlacePopupOpen}
           onClose={closeAllPopups}
-          onCloseClick={handlePopupCloseClick}
           onAddPlace={handleAddPlaceSubmit}
         />
 
-        <ImagePopup
-          card={selectedCard}
-          onClose={closeAllPopups}
-          onCloseClick={handlePopupCloseClick}
-        />
+        <ImagePopup card={selectedCard} onClose={closeAllPopups} />
 
         <DeleteCardPopup
           isOpen={isDeleteCardPopupOpen}
           onClose={closeAllPopups}
-          onCloseClick={handlePopupCloseClick}
           onDeleteCardConfirm={handleCardDelete}
           cardId={cardWithConfirm}
         ></DeleteCardPopup>
@@ -307,7 +295,6 @@ function App() {
         <EditAvatarPopup
           isOpen={isEditAvatarPopupOpen}
           onClose={closeAllPopups}
-          onCloseClick={handlePopupCloseClick}
           onUpdateAvatar={handleAvatarUpdate}
         />
       </CurrentUserContext.Provider>

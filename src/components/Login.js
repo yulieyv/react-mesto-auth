@@ -14,14 +14,14 @@ function Login(props) {
 
   function handleSubmit(evt) {
     evt.preventDefault();
-    props.onLogin(email, password);
+    props.onLogin(password, email);
   }
 
   return (
     <>
       <section className="auth">
-        <h2 className="auth__title">Вход</h2>
         <form className="auth__form" onSubmit={handleSubmit}>
+          <h2 className="auth__title">Вход</h2>
           <input
             className="auth__input"
             onChange={handleEmailChange}
